@@ -6,8 +6,9 @@ Webová aplikace pro evidenci MTH vozíků, trakčních baterií, technických k
 - Přehled s prošlými a blížícími se lhůtami (TK, revize baterií)
 - Vozíky: evidenční číslo, druh, výrobce, model, fotka, popis, vlastník, servis, TK, přidělené baterie, historie
 - Baterie: typ, napětí, kapacita, vlastník, servis, přidělení k vozíku, revize
+- Nabíječky: výrobce, model, sériové číslo, výstup V / A, umístění, vlastník, servis, přidělení k vozíku, revize
 - Tisk evidenční karty vozíku (A4)
-- Export do Excelu (listy Vozíky, Baterie, Revize a kontroly)
+- Export do Excelu (listy Vozíky, Baterie, Nabíječky, Revize a kontroly)
 - Záloha a obnova dat (soubor .json)
 
 ## Důležité – kde jsou data

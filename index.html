@@ -48,7 +48,7 @@ h2{font-size:19px;margin:0 0 14px;color:var(--navy)}
 .hero h1{color:#fff;font-size:32px}
 .hero p{color:#C9DDE8;max-width:720px;margin:8px 0 0;font-size:16px}
 .hero svg.deco{position:absolute;right:-20px;bottom:-30px;opacity:.13}
-.tiles{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:22px 0}
+.tiles{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin:22px 0}
 .tile{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:24px;cursor:pointer;display:flex;gap:20px;align-items:center;transition:.15s;border-left:5px solid var(--blue)}
 .tile:hover{box-shadow:0 6px 20px rgba(0,36,61,.10);transform:translateY(-1px)}
 .tile .ic{width:64px;height:64px;border-radius:50%;background:var(--blue-l);display:grid;place-items:center;flex:none}
@@ -130,12 +130,13 @@ footer.pg{color:var(--muted);font-size:12px;text-align:center;padding:20px}
 <div class="top"><div class="in">
   <div class="brand" onclick="go('')">
     <div class="mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18V6h6l3 6h5v6"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M21 4v14h-2"/></svg></div>
-    <div>Evidence MTH<small>Vozíky · Baterie · Revize</small></div>
+    <div>Evidence MTH<small>Vozíky · Baterie · Nabíječky</small></div>
   </div>
   <nav>
     <a href="#" data-r="">Přehled</a>
     <a href="#voziky" data-r="voziky">Vozíky</a>
     <a href="#baterie" data-r="baterie">Baterie</a>
+    <a href="#nabijecky" data-r="nabijecky">Nabíječky</a>
   </nav>
   <div class="sp"></div>
   <div class="sync" id="sync">Načítám…</div>
@@ -156,6 +157,9 @@ const TYP_B = ["Olověná trakční","Gelová","Li-Ion","LiFePO4","Jiná"];
 const STAV_B = ["V provozu","Nabíjení","Rezerva","V servisu","Vyřazena"];
 const REV_V = ["Technická kontrola","Revize","Servis","Oprava","Školení / jiné"];
 const REV_B = ["Revize","Kontrola elektrolytu","Údržba","Kapacitní test","Výměna článku","Jiné"];
+const TYP_N = ["Standardní (50 Hz)","Vysokofrekvenční (HF)","Pro Li-Ion","Jiná"];
+const STAV_N = ["V provozu","Rezerva","V servisu","Vyřazena"];
+const REV_N = ["Revize","Kontrola","Údržba","Oprava","Jiné"];
 const VYSL = ["Vyhovuje","Vyhovuje s výhradami","Nevyhovuje"];
 const VLASTNIK = ["Maersk","Jungheinrich","Servis Černý"];
 const SERVIS = ["Servis Černý","Jungheinrich"];
@@ -186,6 +190,10 @@ const photoSrc = o => o && o.foto ? (o.foto.url || (o.foto.assetId ? "/_blob/"+o
 const batsOf = vid => S.baterie.filter(b => b.vozikId === vid);
 const vozikById = id => S.voziky.find(v => v.id === id);
 const batById = id => S.baterie.find(b => b.id === id);
+const nabById = id => S.nabijecky.find(n => n.id === id);
+const nabsOf = vid => S.nabijecky.filter(n => n.vozikId === vid);
+const byId = (col,id) => col==="voziky"?vozikById(id):col==="baterie"?batById(id):nabById(id);
+const icoNab = (c="#42B0D5",s=30) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v5M15 2v5"/><path d="M6 7h12v4a6 6 0 0 1-12 0z"/><path d="M12 17v5"/></svg>`;
 const icoTruck = (c="#42B0D5",s=30) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18V6h6l3 6h5v6"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M21 4v14h-2"/></svg>`;
 const icoBat = (c="#42B0D5",s=30) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="18" height="11" rx="2"/><path d="M22 11v3"/><path d="M10 9.5l-2 3.5h4l-2 3.5"/></svg>`;
 
@@ -193,19 +201,20 @@ function toast(msg, err){ const t=document.createElement("div"); t.className="to
 
 /* ===================== Lokální úložiště (IndexedDB v prohlížeči) ===================== */
 S.downloads = true;
-const DBNAME = "evidence-mth", DBVER = 1;
+const DBNAME = "evidence-mth", DBVER = 2;
+S.nabijecky = [];
 let IDB = null;
 function setSync(t){ document.getElementById("sync").textContent=t; }
 function openIDB(){
   return new Promise((res,rej)=>{
     const rq = indexedDB.open(DBNAME, DBVER);
-    rq.onupgradeneeded = () => { const d=rq.result; ["voziky","baterie"].forEach(n=>{ if(!d.objectStoreNames.contains(n)) d.createObjectStore(n,{keyPath:"id"}); }); };
+    rq.onupgradeneeded = () => { const d=rq.result; ["voziky","baterie","nabijecky"].forEach(n=>{ if(!d.objectStoreNames.contains(n)) d.createObjectStore(n,{keyPath:"id"}); }); };
     rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error);
   });
 }
 const idbAll = col => new Promise((res,rej)=>{ const r=IDB.transaction(col).objectStore(col).getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); });
 const idbTx = (col, fn) => new Promise((res,rej)=>{ const t=IDB.transaction(col,"readwrite"); fn(t.objectStore(col)); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); t.onabort=()=>rej(t.error); });
-async function reload(){ S.voziky = await idbAll("voziky"); S.baterie = await idbAll("baterie"); render(); }
+async function reload(){ S.voziky = await idbAll("voziky"); S.baterie = await idbAll("baterie"); S.nabijecky = await idbAll("nabijecky"); render(); }
 function stamp(){ try{ localStorage.setItem("mth-lastChange", new Date().toISOString()); }catch(e){} updateBackupInfo(); }
 function updateBackupInfo(){
   let lb=null; try{ lb=localStorage.getItem("mth-lastBackup"); }catch(e){}
@@ -227,13 +236,13 @@ async function save(col, obj){
   data.upraveno = new Date().toISOString();
   try{ await idbTx(col, s => s.put(data)); }
   catch(e){ throw new Error(e && e.name==="QuotaExceededError" ? "Úložiště prohlížeče je plné." : "Uložení se nepodařilo."); }
-  const list = col==="voziky"?S.voziky:S.baterie; const i=list.findIndex(x=>x.id===data.id);
+  const list = S[col]; const i=list.findIndex(x=>x.id===data.id);
   if(i>=0) list[i]=data; else list.push(data);
   stamp(); render();
 }
 async function remove(col,id){
   await idbTx(col, s => s.delete(id));
-  if(col==="voziky") S.voziky=S.voziky.filter(x=>x.id!==id); else S.baterie=S.baterie.filter(x=>x.id!==id);
+  S[col] = S[col].filter(x=>x.id!==id);
   stamp(); render();
 }
 
@@ -254,7 +263,7 @@ function backupMenu(){
     </div></div>`);
 }
 function doBackup(){
-  const data = { app:"evidence-mth", verze:2, vytvoreno:new Date().toISOString(), voziky:S.voziky, baterie:S.baterie };
+  const data = { app:"evidence-mth", verze:2, vytvoreno:new Date().toISOString(), voziky:S.voziky, baterie:S.baterie, nabijecky:S.nabijecky };
   downloadBlob(`Zaloha_Evidence_MTH_${today()}.json`, new Blob([JSON.stringify(data)],{type:"application/json"}));
   try{ localStorage.setItem("mth-lastBackup", new Date().toISOString()); }catch(e){}
   updateBackupInfo(); closeM(); toast("Záloha stažena");
@@ -265,10 +274,11 @@ function doRestore(input){
   r.onload = () => {
     let d; try{ d=JSON.parse(r.result); }catch(e){ toast("Soubor není platná záloha.", true); return; }
     if(!d || !Array.isArray(d.voziky) || !Array.isArray(d.baterie)){ toast("Soubor není záloha Evidence MTH.", true); return; }
-    confirmBox(`Načíst zálohu z ${d.vytvoreno?new Date(d.vytvoreno).toLocaleString("cs-CZ"):"souboru"}?<br><b>${d.voziky.length}</b> vozíků a <b>${d.baterie.length}</b> baterií.<br><br>Současná data v tomto prohlížeči budou nahrazena.`, async ()=>{
+    confirmBox(`Načíst zálohu z ${d.vytvoreno?new Date(d.vytvoreno).toLocaleString("cs-CZ"):"souboru"}?<br><b>${d.voziky.length}</b> vozíků, <b>${d.baterie.length}</b> baterií a <b>${(d.nabijecky||[]).length}</b> nabíječek.<br><br>Současná data v tomto prohlížeči budou nahrazena.`, async ()=>{
       const clean = a => a.filter(x=>x && typeof x.id==="string");
       await idbTx("voziky", s => { s.clear(); clean(d.voziky).forEach(x=>s.put(x)); });
       await idbTx("baterie", s => { s.clear(); clean(d.baterie).forEach(x=>s.put(x)); });
+      await idbTx("nabijecky", s => { s.clear(); clean(Array.isArray(d.nabijecky)?d.nabijecky:[]).forEach(x=>s.put(x)); });
       await reload(); toast("Záloha načtena");
     }, "Načíst");
   };
@@ -283,7 +293,7 @@ function route(){ return (location.hash||"").replace(/^#/,""); }
 function render(){
   const r = route();
   document.querySelectorAll("nav a").forEach(a => {
-    const k=a.dataset.r; a.classList.toggle("on", k===""? r==="" : (r===k || r.startsWith(k==="voziky"?"vozik-":"bat-")));
+    const k=a.dataset.r; a.classList.toggle("on", k===""? r==="" : (r===k || r.startsWith({voziky:"vozik-",baterie:"bat-",nabijecky:"nab-"}[k])));
   });
   const app = document.getElementById("app");
   const keepFocus = document.activeElement && document.activeElement.id;
@@ -293,6 +303,8 @@ function render(){
   else if(r==="baterie") app.innerHTML = viewBaterie();
   else if(r.startsWith("vozik-")) app.innerHTML = viewVozik(r.slice(6));
   else if(r.startsWith("bat-")) app.innerHTML = viewBat(r.slice(4));
+  else if(r==="nabijecky") app.innerHTML = viewNabijecky();
+  else if(r.startsWith("nab-")) app.innerHTML = viewNab(r.slice(4));
   else app.innerHTML = viewHome();
   if(keepFocus){ const el=document.getElementById(keepFocus); if(el && el.tagName==="INPUT"){ el.focus(); try{el.setSelectionRange(caret,caret);}catch(e){} } }
 }
@@ -301,7 +313,8 @@ function render(){
 function viewHome(){
   const all = [
     ...S.voziky.filter(v=>v.stav!=="Vyřazen").map(v=>({k:"Vozík",cislo:v.cislo,nazev:[v.vyrobce,v.model].filter(Boolean).join(" "),co:"Technická kontrola",d:v.tkPristi,h:"vozik-"+v.id})),
-    ...S.baterie.filter(b=>b.stav!=="Vyřazena").map(b=>({k:"Baterie",cislo:b.cislo,nazev:[b.vyrobce,b.typ].filter(Boolean).join(" "),co:"Revize baterie",d:b.revizePristi,h:"bat-"+b.id}))
+    ...S.baterie.filter(b=>b.stav!=="Vyřazena").map(b=>({k:"Baterie",cislo:b.cislo,nazev:[b.vyrobce,b.typ].filter(Boolean).join(" "),co:"Revize baterie",d:b.revizePristi,h:"bat-"+b.id})),
+    ...S.nabijecky.filter(n=>n.stav!=="Vyřazena").map(n=>({k:"Nabíječka",cislo:n.cislo,nazev:[n.vyrobce,n.model].filter(Boolean).join(" "),co:"Revize nabíječky",d:n.revizePristi,h:"nab-"+n.id}))
   ];
   const bad = all.filter(x=>dueState(x.d)==="bad"), warn = all.filter(x=>dueState(x.d)==="warn");
   const upcoming = [...bad,...warn].sort((a,b)=>(a.d||"").localeCompare(b.d||""));
@@ -311,7 +324,7 @@ function viewHome(){
   <div class="hero">
     <svg class="deco" width="360" height="260" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1"><path d="M3 18V6h6l3 6h5v6"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M21 4v14h-2"/></svg>
     <h1>Evidence manipulační techniky</h1>
-    <p>Centrální přehled MTH vozíků a jejich trakčních baterií. Ke každému vozíku evidujete fotku, popis, evidenční číslo, přidělené baterie a historii technických kontrol a revizí. Evidenční kartu vozíku lze vytisknout a celou evidenci exportovat do Excelu. Data jsou uložena v tomto prohlížeči – pravidelně si stahujte zálohu.</p>
+    <p>Centrální přehled MTH vozíků, jejich trakčních baterií a nabíječek. Ke každému vozíku evidujete fotku, popis, evidenční číslo, přidělené baterie a historii technických kontrol a revizí. Evidenční kartu vozíku lze vytisknout a celou evidenci exportovat do Excelu. Data jsou uložena v tomto prohlížeči – pravidelně si stahujte zálohu.</p>
   </div>
   <div class="tiles">
     <div class="tile" onclick="go('voziky')">
@@ -323,6 +336,11 @@ function viewHome(){
       <div class="ic">${icoBat()}</div>
       <div><h3>Baterie</h3><p>Trakční baterie, přidělení k vozíkům a revize</p></div>
       <div class="num">${S.baterie.length}<small>celkem</small></div>
+    </div>
+    <div class="tile" onclick="go('nabijecky')">
+      <div class="ic">${icoNab()}</div>
+      <div><h3>Nabíječky</h3><p>Nabíječe baterií, umístění, přidělení a revize</p></div>
+      <div class="num">${S.nabijecky.length}<small>celkem</small></div>
     </div>
   </div>
   <div class="stats">
@@ -341,7 +359,7 @@ function viewHome(){
 }
 
 /* ===================== Seznam vozíků ===================== */
-const F = { vq:"", vs:"", bq:"", bs:"", vv:"", vr:"", bv:"", br:"" };
+const F = { vq:"", vs:"", bq:"", bs:"", vv:"", vr:"", bv:"", br:"", nq:"", ns:"", nv:"", nr:"" };
 function setF(k,v){ F[k]=v; render(); }
 function viewVoziky(){
   const q = F.vq.toLowerCase();
@@ -374,7 +392,7 @@ function viewVoziky(){
 function viewVozik(id){
   const v = vozikById(id);
   if(!v) return `<div class="crumb"><a href="#voziky">← Vozíky</a></div><div class="empty">Vozík nebyl nalezen.</div>`;
-  const p = photoSrc(v), bs = batsOf(v.id);
+  const p = photoSrc(v), bs = batsOf(v.id), ns = nabsOf(v.id);
   const rev = [...(v.revize||[])].sort((a,b)=>(b.datum||"").localeCompare(a.datum||""));
   return `
   <div class="crumb"><a href="#voziky">← Vozíky</a></div>
@@ -419,6 +437,12 @@ function viewVozik(id){
         ${bs.length?`<table class="list"><thead><tr><th>Ev. číslo</th><th>Výrobní (sériové) číslo</th><th>Typ</th><th>Napětí / kapacita</th><th>Příští revize</th><th>Stav</th></tr></thead><tbody>
           ${bs.map(b=>`<tr class="click" onclick="go('bat-${b.id}')"><td class="mono">${esc(b.cislo)}</td><td class="mono">${esc(b.vyrobniCislo||"—")}</td><td>${esc(b.typ||"—")}</td><td>${b.napeti?esc(b.napeti)+" V":"—"} / ${b.kapacita?esc(b.kapacita)+" Ah":"—"}</td><td>${dueBadge(b.revizePristi)}</td><td>${stavBadge(b.stav)}</td></tr>`).join("")}
         </tbody></table>`:`<p class="sub" style="margin:0">K vozíku není přidělena žádná baterie.${S.canWrite?" Přidělíte ji v úpravě vozíku.":""}</p>`}
+      </div>
+      <div class="card sect">
+        <h2>Přidělené nabíječky</h2>
+        ${ns.length?`<table class="list"><thead><tr><th>Ev. číslo</th><th>Výrobní (sériové) číslo</th><th>Výrobce / model</th><th>Výstup</th><th>Příští revize</th><th>Stav</th></tr></thead><tbody>
+          ${ns.map(n=>`<tr class="click" onclick="go('nab-${n.id}')"><td class="mono">${esc(n.cislo)}</td><td class="mono">${esc(n.vyrobniCislo||"—")}</td><td>${esc([n.vyrobce,n.model].filter(Boolean).join(" ")||"—")}</td><td>${n.napeti?esc(n.napeti)+" V":"—"} / ${n.proud?esc(n.proud)+" A":"—"}</td><td>${dueBadge(n.revizePristi)}</td><td>${stavBadge(n.stav)}</td></tr>`).join("")}
+        </tbody></table>`:`<p class="sub" style="margin:0">K vozíku není přidělena žádná nabíječka.${S.canWrite?" Přidělíte ji v úpravě vozíku.":""}</p>`}
       </div>
       <div class="card sect">
         <div class="headrow" style="margin-bottom:10px"><h2 style="margin:0">Technické kontroly, revize a servis</h2><div class="sp"></div>
@@ -504,6 +528,121 @@ function viewBat(id){
   </div>`;
 }
 
+/* ===================== Nabíječky ===================== */
+function viewNabijecky(){
+  const q = F.nq.toLowerCase();
+  let rows = S.nabijecky.filter(n => (!F.ns || n.stav===F.ns) && (!F.nv || n.vlastnik===F.nv) && (!F.nr || n.servis===F.nr) && (!q || [n.cislo,n.vyrobce,n.model,n.typ,n.vyrobniCislo,n.umisteni,n.poznamka,n.vlastnik,n.servis,(vozikById(n.vozikId)||{}).cislo].join(" ").toLowerCase().includes(q)));
+  rows.sort((a,b)=>(a.cislo||"").localeCompare(b.cislo||"","cs",{numeric:true}));
+  return `
+  <div class="headrow"><div><h1>Nabíječky</h1><p class="sub" style="margin:0">${S.nabijecky.length} nabíječek v evidenci</p></div><div class="sp"></div>
+    ${S.downloads?`<button class="btn sec" onclick="exportExcel()">⤓ Export do Excelu</button>`:""}
+    ${S.canWrite?`<button class="btn" onclick="editNab()">＋ Nová nabíječka</button>`:""}</div>
+  <div class="bar">
+    <input id="nq" placeholder="Hledat (číslo, výrobce, umístění, vozík…)" value="${esc(F.nq)}" oninput="setF('nq',this.value)">
+    <select onchange="setF('ns',this.value)"><option value="">Všechny stavy</option>${STAV_N.map(s=>`<option ${F.ns===s?"selected":""}>${s}</option>`).join("")}</select>
+    <select onchange="setF('nv',this.value)"><option value="">Všichni vlastníci</option>${VLASTNIK.map(s=>`<option ${F.nv===s?"selected":""}>${s}</option>`).join("")}</select>
+    <select onchange="setF('nr',this.value)"><option value="">Všechny servisy</option>${SERVIS.map(s=>`<option ${F.nr===s?"selected":""}>${s}</option>`).join("")}</select>
+  </div>
+  ${rows.length ? `<table class="list"><thead><tr><th>Ev. číslo</th><th>Výrobce / model</th><th>Výstup</th><th>Výr. číslo</th><th class="hide-m">Umístění</th><th>Vlastník</th><th class="hide-m">Opravy</th><th>Vozík</th><th>Příští revize</th><th>Stav</th></tr></thead><tbody>
+  ${rows.map(n=>{ const v=vozikById(n.vozikId);
+    return `<tr class="click" onclick="go('nab-${n.id}')">
+      <td class="mono">${esc(n.cislo)}</td><td>${esc([n.vyrobce,n.model].filter(Boolean).join(" ")||"—")}</td>
+      <td>${n.napeti?esc(n.napeti)+" V":"—"} / ${n.proud?esc(n.proud)+" A":"—"}</td><td class="mono">${esc(n.vyrobniCislo||"—")}</td>
+      <td class="hide-m">${esc(n.umisteni||"—")}</td>
+      <td>${n.vlastnik?`<span class="badge ${n.vlastnik==="Maersk"?"b-blue":"b-mut"}">${esc(n.vlastnik)}</span>`:"—"}</td>
+      <td class="hide-m">${esc(n.servis||"—")}</td>
+      <td>${v?`<span class="badge b-blue">${esc(v.cislo)}</span>`:'<span style="color:var(--muted)">volná</span>'}</td>
+      <td>${dueBadge(n.revizePristi)}</td><td>${stavBadge(n.stav)}</td></tr>`;}).join("")}
+  </tbody></table>` : `<div class="empty">${S.nabijecky.length?"Filtru neodpovídá žádná nabíječka.":"Zatím žádné nabíječky. "+(S.canWrite?`<br><br><button class="btn" onclick="editNab()">＋ Přidat první nabíječku</button>`:"")}</div>`}`;
+}
+function viewNab(id){
+  const n = nabById(id);
+  if(!n) return `<div class="crumb"><a href="#nabijecky">← Nabíječky</a></div><div class="empty">Nabíječka nebyla nalezena.</div>`;
+  const v = vozikById(n.vozikId);
+  const rev = [...(n.revize||[])].sort((a,c)=>(c.datum||"").localeCompare(a.datum||""));
+  return `
+  <div class="crumb"><a href="#nabijecky">← Nabíječky</a></div>
+  <div class="headrow">
+    <div><h1><span class="mono" style="font-size:inherit">${esc(n.cislo)}</span> · ${esc([n.vyrobce,n.model].filter(Boolean).join(" ")||"Nabíječka")}</h1><div>${stavBadge(n.stav)}</div></div>
+    <div class="sp"></div>
+    ${S.canWrite?`<button class="btn sec" onclick="editNab('${n.id}')">Upravit</button><button class="btn danger" onclick="delNab('${n.id}')">Smazat</button>`:""}
+  </div>
+  <div class="card">
+    <div class="kv">
+      <div><span>Evidenční číslo</span><b class="mono">${esc(n.cislo)}</b></div>
+      <div><span>Výrobce</span><b>${esc(n.vyrobce||"—")}</b></div>
+      <div><span>Model / typ</span><b>${esc(n.model||"—")}</b></div>
+      <div><span>Druh nabíječky</span><b>${esc(n.typ||"—")}</b></div>
+      <div><span>Výstupní napětí</span><b>${n.napeti?esc(n.napeti)+" V":"—"}</b></div>
+      <div><span>Nabíjecí proud</span><b>${n.proud?esc(n.proud)+" A":"—"}</b></div>
+      <div><span>Výrobní (sériové) číslo</span><b class="mono">${esc(n.vyrobniCislo||"—")}</b></div>
+      <div><span>Rok výroby</span><b>${esc(n.rokVyroby||"—")}</b></div>
+      <div><span>Umístění</span><b>${esc(n.umisteni||"—")}</b></div>
+      <div><span>Vlastník</span><b>${esc(n.vlastnik||"—")}</b></div>
+      <div><span>Opravy provádí</span><b>${esc(n.servis||"—")}</b></div>
+      <div><span>Přidělena k vozíku</span><b>${v?`<a href="#vozik-${v.id}" class="mono">${esc(v.cislo)}</a>`:"volná"}</b></div>
+      <div><span>Nasazena od</span><b>${fmtD(n.datumNasazeni)}</b></div>
+      <div><span>Poslední revize</span><b>${fmtD(n.revizeDatum)}</b></div>
+      <div><span>Příští revize</span><b>${dueBadge(n.revizePristi)}</b></div>
+    </div>
+    ${n.poznamka?`<div style="margin-top:16px"><span style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Poznámka</span><div style="white-space:pre-wrap">${esc(n.poznamka)}</div></div>`:""}
+  </div>
+  <div class="card sect">
+    <div class="headrow" style="margin-bottom:10px"><h2 style="margin:0">Revize a údržba</h2><div class="sp"></div>
+      ${S.canWrite?`<button class="btn sm" onclick="addRev('nabijecky','${n.id}')">＋ Přidat záznam</button>`:""}</div>
+    ${revTable(rev,'nabijecky',n.id)}
+  </div>`;
+}
+function editNab(id){
+  const n = id ? nabById(id) : { cislo:nextNum("nabijecky","NAB-"), stav:"V provozu", typ:TYP_N[0] };
+  const vs = [...S.voziky].filter(v=>v.stav!=="Vyřazen").sort((a,c)=>(a.cislo||"").localeCompare(c.cislo||"","cs",{numeric:true}));
+  modal(`<form class="modal" onsubmit="event.preventDefault();saveNab(this,'${id||""}')">
+    <header><h3>${id?"Upravit nabíječku "+esc(n.cislo):"Nová nabíječka"}</h3><button type="button" onclick="closeM()">×</button></header>
+    <div class="body"><div class="grid">
+      <div class="fs">Identifikace</div>
+      ${inp("cislo","Evidenční číslo *",n.cislo,"text","","required")}
+      ${sel("typ","Druh nabíječky",TYP_N,n.typ)}
+      ${sel("stav","Stav",STAV_N,n.stav)}
+      ${selKeep("vyrobce","Výrobce",VYROBCI,n.vyrobce)}
+      ${inp("model","Model / typ",n.model)}
+      ${inp("vyrobniCislo","Výrobní (sériové) číslo",n.vyrobniCislo)}
+      ${inp("napeti","Výstupní napětí (V)",n.napeti,"number","",'min="0"')}
+      ${inp("proud","Nabíjecí proud (A)",n.proud,"number","",'min="0"')}
+      ${inp("rokVyroby","Rok výroby",n.rokVyroby,"number","",'min="1950" max="2100"')}
+      ${inp("umisteni","Umístění (kde stojí)",n.umisteni,"text","full")}
+      <div class="fs">Vlastnictví a servis</div>
+      ${sel("vlastnik","Vlastník",VLASTNIK,n.vlastnik,"","— vyberte —")}
+      ${sel("servis","Opravy provádí",SERVIS,n.servis,"","— vyberte —")}
+      <div></div>
+      <div class="fs">Přidělení</div>
+      <label class="f two">Vozík<select name="vozikId"><option value="">— volná (nepřidělena) —</option>${vs.map(v=>`<option value="${v.id}" ${n.vozikId===v.id?"selected":""}>${esc(v.cislo)} · ${esc([v.vyrobce,v.model].filter(Boolean).join(" "))}</option>`).join("")}</select></label>
+      ${inp("datumNasazeni","Nasazena od",n.datumNasazeni,"date")}
+      <div class="fs">Revize</div>
+      ${inp("revizeDatum","Datum poslední revize",n.revizeDatum,"date","",`onchange="this.form.revizePristi.value=addMonths(this.value,this.form.revizeInterval.value)"`)}
+      ${inp("revizeInterval","Interval (měsíce)",n.revizeInterval||12,"number","",`min="1" onchange="if(this.form.revizeDatum.value)this.form.revizePristi.value=addMonths(this.form.revizeDatum.value,this.value)"`)}
+      ${inp("revizePristi","Příští revize",n.revizePristi,"date")}
+      ${ta("poznamka","Poznámka",n.poznamka)}
+    </div></div>
+    <footer><button type="button" class="btn sec" onclick="closeM()">Zrušit</button><button class="btn" id="svbtn">Uložit nabíječku</button></footer>
+  </form>`);
+}
+async function saveNab(form,id){
+  const btn = document.getElementById("svbtn"); btn.disabled=true; btn.textContent="Ukládám…";
+  try{
+    const d = formData(form);
+    if(S.nabijecky.some(n=>n.id!==id && (n.cislo||"").toLowerCase()===d.cislo.toLowerCase())) throw new Error("Nabíječka s tímto evidenčním číslem už existuje.");
+    const old = id ? nabById(id) : {revize:[]};
+    const obj = { ...old, ...d, id: id || uid("n") };
+    if(obj.vozikId && !obj.datumNasazeni) obj.datumNasazeni = today();
+    await save("nabijecky", obj);
+    closeM(); toast("Nabíječka uložena"); if(!id) go("nab-"+obj.id);
+  }catch(e){ toast(e.message||"Chyba při ukládání", true); btn.disabled=false; btn.textContent="Uložit nabíječku"; }
+}
+function delNab(id){
+  const n = nabById(id);
+  confirmBox(`Opravdu smazat nabíječku <b>${esc(n.cislo)}</b>? Akci nelze vrátit.`, async ()=>{ await remove("nabijecky",id); toast("Nabíječka smazána"); go("nabijecky"); });
+}
+
 /* ===================== Formuláře ===================== */
 function modal(html){ document.getElementById("modal").innerHTML = `<div class="ov" onmousedown="if(event.target===this)closeM()">${html}</div>`; }
 function closeM(){ document.getElementById("modal").innerHTML=""; }
@@ -511,7 +650,7 @@ const opt = (arr,val) => arr.map(x=>`<option ${x===val?"selected":""}>${esc(x)}<
 const inp = (n,l,val,t="text",cls="",ex="") => `<label class="f ${cls}">${l}<input name="${n}" type="${t}" value="${esc(val??"")}" ${ex}></label>`;
 const sel = (n,l,arr,val,cls="",blank) => `<label class="f ${cls}">${l}<select name="${n}">${blank?`<option value="">${blank}</option>`:""}${opt(arr,val)}</select></label>`;
 const ta = (n,l,val,cls="full") => `<label class="f ${cls}">${l}<textarea name="${n}" rows="3">${esc(val??"")}</textarea></label>`;
-function formData(f){ const o={}; new FormData(f).forEach((v,k)=>{ if(k!=="bat") o[k]=typeof v==="string"?v.trim():v; }); return o; }
+function formData(f){ const o={}; new FormData(f).forEach((v,k)=>{ if(k!=="bat" && k!=="nab") o[k]=typeof v==="string"?v.trim():v; }); return o; }
 
 let pendingFoto = null; // {dataUrl, blob} | "remove" | null
 function editVozik(id){
@@ -521,6 +660,9 @@ function editVozik(id){
   const myBats = id ? batsOf(id).map(b=>b.id) : [];
   const avail = S.baterie.filter(b => b.stav!=="Vyřazena" && (!b.vozikId || b.vozikId===id || !vozikById(b.vozikId)));
   const others = S.baterie.filter(b => b.vozikId && b.vozikId!==id && vozikById(b.vozikId) && b.stav!=="Vyřazena");
+  const myNabs = id ? nabsOf(id).map(n=>n.id) : [];
+  const nAvail = S.nabijecky.filter(n => n.stav!=="Vyřazena" && (!n.vozikId || n.vozikId===id || !vozikById(n.vozikId)));
+  const nOthers = S.nabijecky.filter(n => n.vozikId && n.vozikId!==id && vozikById(n.vozikId) && n.stav!=="Vyřazena");
   modal(`<form class="modal" onsubmit="event.preventDefault();saveVozik(this,'${id||""}')">
     <header><h3>${id?"Upravit vozík "+esc(v.cislo):"Nový vozík"}</h3><button type="button" onclick="closeM()">×</button></header>
     <div class="body"><div class="grid">
@@ -558,12 +700,17 @@ function editVozik(id){
         ${avail.map(b=>`<label><input type="checkbox" name="bat" value="${b.id}" ${myBats.includes(b.id)?"checked":""}> <span class="mono">${esc(b.cislo)}</span> <span style="color:var(--muted)">${esc([b.vyrobniCislo&&"s/n "+b.vyrobniCislo,b.typ,b.napeti&&b.napeti+" V"].filter(Boolean).join(" · "))}</span></label>`).join("")}
         ${others.map(b=>`<label style="opacity:.6"><input type="checkbox" name="bat" value="${b.id}"> <span class="mono">${esc(b.cislo)}</span> <span style="color:var(--muted)">nyní u ${esc(vozikById(b.vozikId).cislo)} – přeřadit</span></label>`).join("")}
       </div>`:`<p class="sub" style="margin:0">V evidenci nejsou žádné baterie. Přidejte je v sekci Baterie.</p>`}</div>
+      <div class="fs">Přidělené nabíječky</div>
+      <div class="full">${nAvail.length||nOthers.length?`<div class="chk">
+        ${nAvail.map(n=>`<label><input type="checkbox" name="nab" value="${n.id}" ${myNabs.includes(n.id)?"checked":""}> <span class="mono">${esc(n.cislo)}</span> <span style="color:var(--muted)">${esc([n.vyrobniCislo&&"s/n "+n.vyrobniCislo,n.model,n.napeti&&n.napeti+" V"].filter(Boolean).join(" · "))}</span></label>`).join("")}
+        ${nOthers.map(n=>`<label style="opacity:.6"><input type="checkbox" name="nab" value="${n.id}"> <span class="mono">${esc(n.cislo)}</span> <span style="color:var(--muted)">nyní u ${esc(vozikById(n.vozikId).cislo)} – přeřadit</span></label>`).join("")}
+      </div>`:`<p class="sub" style="margin:0">V evidenci nejsou žádné nabíječky. Přidejte je v sekci Nabíječky.</p>`}</div>
     </div></div>
     <footer><button type="button" class="btn sec" onclick="closeM()">Zrušit</button><button class="btn" id="svbtn">Uložit vozík</button></footer>
   </form>`);
 }
 function nextNum(col,prefix){
-  const list = col==="voziky"?S.voziky:S.baterie;
+  const list = S[col];
   let max=0; list.forEach(x=>{ const m=String(x.cislo||"").match(/(\d+)\s*$/); if(m) max=Math.max(max,+m[1]); });
   return prefix + String(max+1).padStart(3,"0");
 }
@@ -606,6 +753,12 @@ async function saveVozik(form, id){
       const should = chosen.includes(b.id), is = b.vozikId===obj.id;
       if(should && !is) await save("baterie", {...b, vozikId:obj.id, datumNasazeni: b.datumNasazeni||today()});
       else if(!should && is) await save("baterie", {...b, vozikId:""});
+    }
+    const chosenN = [...form.querySelectorAll('input[name=nab]:checked')].map(x=>x.value);
+    for(const n of [...S.nabijecky]){
+      const should = chosenN.includes(n.id), is = n.vozikId===obj.id;
+      if(should && !is) await save("nabijecky", {...n, vozikId:obj.id, datumNasazeni: n.datumNasazeni||today()});
+      else if(!should && is) await save("nabijecky", {...n, vozikId:""});
     }
     closeM(); toast("Vozík uložen"); if(!id) go("vozik-"+obj.id);
   }catch(e){ toast(e.message||"Chyba při ukládání", true); btn.disabled=false; btn.textContent="Uložit vozík"; }
@@ -657,13 +810,13 @@ async function saveBat(form,id){
 }
 
 function addRev(col,id){
-  const isV = col==="voziky"; const o = isV?vozikById(id):batById(id);
+  const isV = col==="voziky"; const o = byId(col,id);
   const interval = isV ? (o.tkInterval||12) : (o.revizeInterval||12);
   modal(`<form class="modal sm" onsubmit="event.preventDefault();saveRev(this,'${col}','${id}')">
     <header><h3>Nový záznam · ${esc(o.cislo)}</h3><button type="button" onclick="closeM()">×</button></header>
     <div class="body"><div class="grid" style="grid-template-columns:1fr 1fr">
       ${inp("datum","Datum *",today(),"date","","required")}
-      ${sel("typ","Úkon",isV?REV_V:REV_B,isV?"Technická kontrola":"Revize")}
+      ${sel("typ","Úkon",isV?REV_V:col==="baterie"?REV_B:REV_N,isV?"Technická kontrola":"Revize")}
       ${inp("provedl","Provedl (firma / technik)",o.servis||"","text","full",'list="servisList"')}
       <datalist id="servisList">${SERVIS.map(s=>`<option value="${s}">`).join("")}</datalist>
       ${sel("vysledek","Výsledek",VYSL,"Vyhovuje")}
@@ -678,7 +831,7 @@ async function saveRev(form,col,id){
   const btn=document.getElementById("svbtn"); btn.disabled=true;
   try{
     const d = formData(form); const isV = col==="voziky";
-    const o = isV?vozikById(id):batById(id);
+    const o = byId(col,id);
     const obj = {...o, revize:[...(o.revize||[]), {id:uid("r"),...d}]};
     if(isV && d.typ==="Technická kontrola"){ if(!o.tkDatum || d.datum>=o.tkDatum){ obj.tkDatum=d.datum; if(d.pristi) obj.tkPristi=d.pristi; } }
     if(!isV && d.typ==="Revize"){ if(!o.revizeDatum || d.datum>=o.revizeDatum){ obj.revizeDatum=d.datum; if(d.pristi) obj.revizePristi=d.pristi; } }
@@ -692,12 +845,13 @@ function confirmBox(text, ok, label="Smazat"){
   document.getElementById("cfok").onclick = async ()=>{ try{ await ok(); closeM(); }catch(e){ toast("Akce se nepodařila", true); } };
 }
 function delRev(col,id,rid){
-  confirmBox("Opravdu smazat tento záznam z historie?", async ()=>{ const o = col==="voziky"?vozikById(id):batById(id); await save(col,{...o, revize:(o.revize||[]).filter(r=>r.id!==rid)}); toast("Záznam smazán"); });
+  confirmBox("Opravdu smazat tento záznam z historie?", async ()=>{ const o = byId(col,id); await save(col,{...o, revize:(o.revize||[]).filter(r=>r.id!==rid)}); toast("Záznam smazán"); });
 }
 function delVozik(id){
   const v = vozikById(id);
-  confirmBox(`Opravdu smazat vozík <b>${esc(v.cislo)}</b>? Přidělené baterie se uvolní. Akci nelze vrátit.<br><br><span style="color:var(--muted);font-size:13px">Tip: vyřazený vozík můžete místo smazání označit stavem „Vyřazen“.</span>`, async ()=>{
+  confirmBox(`Opravdu smazat vozík <b>${esc(v.cislo)}</b>? Přidělené baterie a nabíječky se uvolní. Akci nelze vrátit.<br><br><span style="color:var(--muted);font-size:13px">Tip: vyřazený vozík můžete místo smazání označit stavem „Vyřazen“.</span>`, async ()=>{
     for(const b of batsOf(id)) await save("baterie",{...b, vozikId:""});
+    for(const n of nabsOf(id)) await save("nabijecky",{...n, vozikId:""});
     await remove("voziky",id); toast("Vozík smazán"); go("voziky");
   });
 }
@@ -709,7 +863,7 @@ function delBat(id){
 /* ===================== Tisk evidenční karty ===================== */
 async function printVozik(id){
   const v = vozikById(id); if(!v) return;
-  const p = photoSrc(v), bs = batsOf(id);
+  const p = photoSrc(v), bs = batsOf(id), ns = nabsOf(id);
   const rev = [...(v.revize||[])].sort((a,b)=>(b.datum||"").localeCompare(a.datum||""));
   const td = 'style="padding:5px 7px;border:1px solid #CBD5DD;font-size:10.5px;vertical-align:top"';
   const th = 'style="padding:5px 7px;border:1px solid #CBD5DD;font-size:10px;background:#EEF2F5;color:#00243D;text-align:left"';
@@ -743,6 +897,10 @@ async function printVozik(id){
     <table style="border-collapse:collapse;width:100%"><tr><th ${th}>Ev. číslo</th><th ${th}>Výrobce / typ</th><th ${th}>Napětí</th><th ${th}>Kapacita</th><th ${th}>Výr. číslo</th><th ${th}>Příští revize</th></tr>
       ${bs.length?bs.map(b=>`<tr><td ${td}><b>${esc(b.cislo)}</b></td><td ${td}>${esc([b.vyrobce,b.typ].filter(Boolean).join(" · "))}</td><td ${td}>${b.napeti?esc(b.napeti)+" V":"—"}</td><td ${td}>${b.kapacita?esc(b.kapacita)+" Ah":"—"}</td><td ${td}>${esc(b.vyrobniCislo||"—")}</td><td ${td}>${fmtD(b.revizePristi)}</td></tr>`).join(""):`<tr><td ${td} colspan="6">Žádná baterie není přidělena.</td></tr>`}
     </table>
+    <div style="font-weight:700;color:#00243D;font-size:12px;margin:14px 0 5px;border-bottom:2px solid #42B0D5;padding-bottom:2px;text-transform:uppercase">Přidělené nabíječky</div>
+    <table style="border-collapse:collapse;width:100%"><tr><th ${th}>Ev. číslo</th><th ${th}>Výrobce / model</th><th ${th}>Výstup</th><th ${th}>Výr. číslo</th><th ${th}>Umístění</th><th ${th}>Příští revize</th></tr>
+      ${ns.length?ns.map(n=>`<tr><td ${td}><b>${esc(n.cislo)}</b></td><td ${td}>${esc([n.vyrobce,n.model].filter(Boolean).join(" "))}</td><td ${td}>${n.napeti?esc(n.napeti)+" V":"—"} / ${n.proud?esc(n.proud)+" A":"—"}</td><td ${td}>${esc(n.vyrobniCislo||"—")}</td><td ${td}>${esc(n.umisteni||"—")}</td><td ${td}>${fmtD(n.revizePristi)}</td></tr>`).join(""):`<tr><td ${td} colspan="6">Žádná nabíječka není přidělena.</td></tr>`}
+    </table>
     <div style="font-weight:700;color:#00243D;font-size:12px;margin:14px 0 5px;border-bottom:2px solid #42B0D5;padding-bottom:2px;text-transform:uppercase">Záznamy o technických kontrolách, revizích a servisu</div>
     <table style="border-collapse:collapse;width:100%"><tr><th ${th}>Datum</th><th ${th}>Úkon</th><th ${th}>Provedl</th><th ${th}>Výsledek</th><th ${th}>Příští</th><th ${th}>Poznámka</th></tr>
       ${rev.length?rev.map(r=>`<tr><td ${td}>${fmtD(r.datum)}</td><td ${td}>${esc(r.typ)}</td><td ${td}>${esc(r.provedl||"")}</td><td ${td}>${esc(r.vysledek||"")}</td><td ${td}>${fmtD(r.pristi)}</td><td ${td}>${esc(r.poznamka||"")}</td></tr>`).join(""):""}
@@ -771,7 +929,10 @@ async function exportExcel(){
   const num = x => x===""||x==null ? "" : (isNaN(+x)?x:+x);
   const vRows = vs.map(v=>({"Ev. číslo":v.cislo,"Druh":v.druh||"","Výrobce":v.vyrobce||"","Model":v.model||"","Výrobní číslo":v.vyrobniCislo||"","Rok výroby":num(v.rokVyroby),"Nosnost (kg)":num(v.nosnost),"Pohon":v.pohon||"","Umístění":v.umisteni||"","Odpovědná osoba":v.odpovedna||"","Vlastník":v.vlastnik||"","Opravy provádí":v.servis||"","Stav":v.stav||"","Baterie":batsOf(v.id).map(b=>b.cislo).join(", "),"Poslední TK":dt(v.tkDatum),"Příští TK":dt(v.tkPristi),"Stav TK":({bad:"PROŠLÁ",warn:"Do 30 dnů",ok:"OK",none:"Nezadáno"})[dueState(v.tkPristi)],"Popis":v.popis||""}));
   const bRows = bsAll.map(b=>({"Ev. číslo":b.cislo,"Typ":b.typ||"","Výrobce":b.vyrobce||"","Výrobní číslo":b.vyrobniCislo||"","Rok výroby":num(b.rokVyroby),"Napětí (V)":num(b.napeti),"Kapacita (Ah)":num(b.kapacita),"Hmotnost (kg)":num(b.hmotnost),"Vlastník":b.vlastnik||"","Opravy provádí":b.servis||"","Stav":b.stav||"","Vozík":(vozikById(b.vozikId)||{}).cislo||"","Nasazena od":dt(b.datumNasazeni),"Poslední revize":dt(b.revizeDatum),"Příští revize":dt(b.revizePristi),"Stav revize":({bad:"PROŠLÁ",warn:"Do 30 dnů",ok:"OK",none:"Nezadáno"})[dueState(b.revizePristi)],"Poznámka":b.poznamka||""}));
+  const nsAll = [...S.nabijecky].sort((a,b)=>(a.cislo||"").localeCompare(b.cislo||"","cs",{numeric:true}));
+  const nRows = nsAll.map(n=>({"Ev. číslo":n.cislo,"Druh":n.typ||"","Výrobce":n.vyrobce||"","Model":n.model||"","Výrobní číslo":n.vyrobniCislo||"","Rok výroby":num(n.rokVyroby),"Výstupní napětí (V)":num(n.napeti),"Proud (A)":num(n.proud),"Umístění":n.umisteni||"","Vlastník":n.vlastnik||"","Opravy provádí":n.servis||"","Stav":n.stav||"","Vozík":(vozikById(n.vozikId)||{}).cislo||"","Nasazena od":dt(n.datumNasazeni),"Poslední revize":dt(n.revizeDatum),"Příští revize":dt(n.revizePristi),"Stav revize":({bad:"PROŠLÁ",warn:"Do 30 dnů",ok:"OK",none:"Nezadáno"})[dueState(n.revizePristi)],"Poznámka":n.poznamka||""}));
   const rRows = [];
+  nsAll.forEach(n=>(n.revize||[]).forEach(r=>rRows.push({"Objekt":"Nabíječka","Ev. číslo":n.cislo,"Datum":dt(r.datum),"Úkon":r.typ,"Provedl":r.provedl||"","Výsledek":r.vysledek||"","Příští termín":dt(r.pristi),"Poznámka":r.poznamka||""})));
   vs.forEach(v=>(v.revize||[]).forEach(r=>rRows.push({"Objekt":"Vozík","Ev. číslo":v.cislo,"Datum":dt(r.datum),"Úkon":r.typ,"Provedl":r.provedl||"","Výsledek":r.vysledek||"","Příští termín":dt(r.pristi),"Poznámka":r.poznamka||""})));
   bsAll.forEach(b=>(b.revize||[]).forEach(r=>rRows.push({"Objekt":"Baterie","Ev. číslo":b.cislo,"Datum":dt(r.datum),"Úkon":r.typ,"Provedl":r.provedl||"","Výsledek":r.vysledek||"","Příští termín":dt(r.pristi),"Poznámka":r.poznamka||""})));
   rRows.sort((a,b)=>(b.Datum||0)-(a.Datum||0));
@@ -785,6 +946,7 @@ async function exportExcel(){
   };
   add(vRows,"Vozíky",["Ev. číslo","Druh","Výrobce","Model","Výrobní číslo","Rok výroby","Nosnost (kg)","Pohon","Umístění","Odpovědná osoba","Vlastník","Opravy provádí","Stav","Baterie","Poslední TK","Příští TK","Stav TK","Popis"]);
   add(bRows,"Baterie",["Ev. číslo","Typ","Výrobce","Výrobní číslo","Rok výroby","Napětí (V)","Kapacita (Ah)","Hmotnost (kg)","Vlastník","Opravy provádí","Stav","Vozík","Nasazena od","Poslední revize","Příští revize","Stav revize","Poznámka"]);
+  add(nRows,"Nabíječky",["Ev. číslo","Druh","Výrobce","Model","Výrobní číslo","Rok výroby","Výstupní napětí (V)","Proud (A)","Umístění","Vlastník","Opravy provádí","Stav","Vozík","Nasazena od","Poslední revize","Příští revize","Stav revize","Poznámka"]);
   add(rRows,"Revize a kontroly",["Objekt","Ev. číslo","Datum","Úkon","Provedl","Výsledek","Příští termín","Poznámka"]);
   const buf = XLSX.write(wb,{type:"array",bookType:"xlsx",cellDates:true});
   downloadBlob(`Evidence_MTH_${today()}.xlsx`, new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
