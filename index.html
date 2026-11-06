@@ -295,7 +295,7 @@ function doRestore(input){
 
 /* ===================== Routing ===================== */
 function go(h){ location.hash = h ? "#"+h : "#"; if(!h) render(); }
-window.addEventListener("hashchange", ()=>{ render(); window.scrollTo(0,0); });
+window.addEventListener("hashchange", ()=>{ closeM(); render(); window.scrollTo(0,0); });
 function route(){ return (location.hash||"").replace(/^#/,""); }
 
 function render(){
@@ -523,7 +523,7 @@ function viewBat(id){
       <div><span>Nasazena od</span><b>${fmtD(b.datumNasazeni)}</b></div>
       <div><span>Vlastník</span><b>${esc(b.vlastnik||"—")}</b></div>
       <div><span>Opravy provádí</span><b>${esc(b.servis||"—")}</b></div>
-      <div><span>Přidělena k vozíku</span><b>${v?`<a href="#vozik-${v.id}" class="mono">${esc(v.cislo)}</a>`:"volná"}</b></div>
+      <div><span>Přidělena k vozíku</span><b>${v?`<a href="#vozik-${v.id}" class="mono">${esc(v.cislo)}</a> <span style="color:var(--muted);font-weight:400">s/n ${esc(v.vyrobniCislo||"—")}</span>`:"volná"}</b></div>
       <div><span>Poslední revize</span><b>${fmtD(b.revizeDatum)}</b></div>
       <div><span>Příští revize</span><b>${dueBadge(b.revizePristi)}</b></div>
     </div>
@@ -588,7 +588,7 @@ function viewNab(id){
       <div><span>Umístění</span><b>${esc(n.umisteni||"—")}</b></div>
       <div><span>Vlastník</span><b>${esc(n.vlastnik||"—")}</b></div>
       <div><span>Opravy provádí</span><b>${esc(n.servis||"—")}</b></div>
-      <div><span>Přidělena k vozíku</span><b>${v?`<a href="#vozik-${v.id}" class="mono">${esc(v.cislo)}</a>`:"volná"}</b></div>
+      <div><span>Přidělena k vozíku</span><b>${v?`<a href="#vozik-${v.id}" class="mono">${esc(v.cislo)}</a> <span style="color:var(--muted);font-weight:400">s/n ${esc(v.vyrobniCislo||"—")}</span>`:"volná"}</b></div>
       <div><span>Nasazena od</span><b>${fmtD(n.datumNasazeni)}</b></div>
       <div><span>Poslední revize</span><b>${fmtD(n.revizeDatum)}</b></div>
       <div><span>Příští revize</span><b>${dueBadge(n.revizePristi)}</b></div>
@@ -623,7 +623,7 @@ function editNab(id){
       ${sel("servis","Opravy provádí",SERVIS,n.servis,"","— vyberte —")}
       <div></div>
       <div class="fs">Přidělení</div>
-      <label class="f two">Vozík<select name="vozikId"><option value="">— volná (nepřidělena) —</option>${vs.map(v=>`<option value="${v.id}" ${n.vozikId===v.id?"selected":""}>${esc(v.cislo)} · ${esc([v.vyrobce,v.model].filter(Boolean).join(" "))}</option>`).join("")}</select></label>
+      <label class="f two">Vozík<select name="vozikId"><option value="">— volná (nepřidělena) —</option>${vs.map(v=>`<option value="${v.id}" ${n.vozikId===v.id?"selected":""}>${esc([v.cislo,[v.vyrobce,v.model].filter(Boolean).join(" "),"s/n "+(v.vyrobniCislo||"nezadáno")].filter(Boolean).join(" · "))}</option>`).join("")}</select></label>
       ${inp("datumNasazeni","Nasazena od",n.datumNasazeni,"date")}
       <div class="fs">Revize</div>
       ${inp("revizeDatum","Datum poslední revize",n.revizeDatum,"date","",`onchange="this.form.revizePristi.value=addMonths(this.value,this.form.revizeInterval.value)"`)}
@@ -793,7 +793,7 @@ function editBat(id){
       ${sel("servis","Opravy provádí",SERVIS,b.servis,"","— vyberte —")}
       <div></div>
       <div class="fs">Přidělení</div>
-      <label class="f two">Vozík<select name="vozikId"><option value="">— volná (nepřidělena) —</option>${vs.map(v=>`<option value="${v.id}" ${b.vozikId===v.id?"selected":""}>${esc(v.cislo)} · ${esc([v.vyrobce,v.model].filter(Boolean).join(" "))}</option>`).join("")}</select></label>
+      <label class="f two">Vozík<select name="vozikId"><option value="">— volná (nepřidělena) —</option>${vs.map(v=>`<option value="${v.id}" ${b.vozikId===v.id?"selected":""}>${esc([v.cislo,[v.vyrobce,v.model].filter(Boolean).join(" "),"s/n "+(v.vyrobniCislo||"nezadáno")].filter(Boolean).join(" · "))}</option>`).join("")}</select></label>
       ${inp("datumNasazeni","Nasazena od",b.datumNasazeni,"date")}
       <div class="fs">Revize</div>
       ${inp("revizeDatum","Datum poslední revize",b.revizeDatum,"date","",`onchange="this.form.revizePristi.value=addMonths(this.value,this.form.revizeInterval.value)"`)}
