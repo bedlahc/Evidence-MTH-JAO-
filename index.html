@@ -159,6 +159,10 @@ const REV_B = ["Revize","Kontrola elektrolytu","Údržba","Kapacitní test","Vý
 const VYSL = ["Vyhovuje","Vyhovuje s výhradami","Nevyhovuje"];
 const VLASTNIK = ["Maersk","Jungheinrich","Servis Černý"];
 const SERVIS = ["Servis Černý","Jungheinrich"];
+const VYROBCI = ["Jungheinrich","Still","Toyota"];
+const MODELY = ["ETV214","ETV216","ERE120","ERE125","ERE125 Li-Ion","ERE220","EFG220","ESE20","ESE120","ESE220","ERC12"];
+// výběr ze seznamu; dříve zadaná hodnota mimo seznam se zachová
+const selKeep = (n,l,arr,val) => sel(n,l,(val && !arr.includes(val)) ? [...arr,val] : arr, val, "", "— vyberte —");
 
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -412,8 +416,8 @@ function viewVozik(id){
       </div>
       <div class="card sect">
         <h2>Přidělené baterie</h2>
-        ${bs.length?`<table class="list"><thead><tr><th>Ev. číslo</th><th>Typ</th><th>Napětí / kapacita</th><th>Příští revize</th><th>Stav</th></tr></thead><tbody>
-          ${bs.map(b=>`<tr class="click" onclick="go('bat-${b.id}')"><td class="mono">${esc(b.cislo)}</td><td>${esc(b.typ||"—")}</td><td>${b.napeti?esc(b.napeti)+" V":"—"} / ${b.kapacita?esc(b.kapacita)+" Ah":"—"}</td><td>${dueBadge(b.revizePristi)}</td><td>${stavBadge(b.stav)}</td></tr>`).join("")}
+        ${bs.length?`<table class="list"><thead><tr><th>Ev. číslo</th><th>Výrobní (sériové) číslo</th><th>Typ</th><th>Napětí / kapacita</th><th>Příští revize</th><th>Stav</th></tr></thead><tbody>
+          ${bs.map(b=>`<tr class="click" onclick="go('bat-${b.id}')"><td class="mono">${esc(b.cislo)}</td><td class="mono">${esc(b.vyrobniCislo||"—")}</td><td>${esc(b.typ||"—")}</td><td>${b.napeti?esc(b.napeti)+" V":"—"} / ${b.kapacita?esc(b.kapacita)+" Ah":"—"}</td><td>${dueBadge(b.revizePristi)}</td><td>${stavBadge(b.stav)}</td></tr>`).join("")}
         </tbody></table>`:`<p class="sub" style="margin:0">K vozíku není přidělena žádná baterie.${S.canWrite?" Přidělíte ji v úpravě vozíku.":""}</p>`}
       </div>
       <div class="card sect">
@@ -524,8 +528,8 @@ function editVozik(id){
       ${inp("cislo","Evidenční číslo *",v.cislo,"text","","required")}
       ${sel("druh","Druh vozíku",DRUHY,v.druh)}
       ${sel("stav","Stav",STAV_V,v.stav)}
-      ${inp("vyrobce","Výrobce",v.vyrobce,"text","",'placeholder="např. Linde, Still, Jungheinrich"')}
-      ${inp("model","Model / typ",v.model)}
+      ${selKeep("vyrobce","Výrobce",VYROBCI,v.vyrobce)}
+      ${selKeep("model","Model / typ",MODELY,v.model)}
       ${inp("vyrobniCislo","Výrobní číslo",v.vyrobniCislo)}
       ${inp("rokVyroby","Rok výroby",v.rokVyroby,"number","",'min="1950" max="2100"')}
       ${inp("nosnost","Nosnost (kg)",v.nosnost,"number","",'min="0"')}
@@ -551,7 +555,7 @@ function editVozik(id){
       ${inp("tkPristi","Příští TK",v.tkPristi,"date")}
       <div class="fs">Přidělené baterie</div>
       <div class="full">${avail.length||others.length?`<div class="chk">
-        ${avail.map(b=>`<label><input type="checkbox" name="bat" value="${b.id}" ${myBats.includes(b.id)?"checked":""}> <span class="mono">${esc(b.cislo)}</span> <span style="color:var(--muted)">${esc([b.typ,b.napeti&&b.napeti+" V",b.kapacita&&b.kapacita+" Ah"].filter(Boolean).join(" · "))}</span></label>`).join("")}
+        ${avail.map(b=>`<label><input type="checkbox" name="bat" value="${b.id}" ${myBats.includes(b.id)?"checked":""}> <span class="mono">${esc(b.cislo)}</span> <span style="color:var(--muted)">${esc([b.vyrobniCislo&&"s/n "+b.vyrobniCislo,b.typ,b.napeti&&b.napeti+" V"].filter(Boolean).join(" · "))}</span></label>`).join("")}
         ${others.map(b=>`<label style="opacity:.6"><input type="checkbox" name="bat" value="${b.id}"> <span class="mono">${esc(b.cislo)}</span> <span style="color:var(--muted)">nyní u ${esc(vozikById(b.vozikId).cislo)} – přeřadit</span></label>`).join("")}
       </div>`:`<p class="sub" style="margin:0">V evidenci nejsou žádné baterie. Přidejte je v sekci Baterie.</p>`}</div>
     </div></div>
